@@ -2,6 +2,14 @@ openapi: 3.0.3
 info:
   title: Maxwell API
   version: 1.0.0
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+security:
+  - ApiKeyAuth: []
 servers:
   - url: http://localhost:8080
 paths:

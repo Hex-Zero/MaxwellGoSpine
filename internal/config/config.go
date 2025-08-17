@@ -20,6 +20,7 @@ type Config struct {
 	CORSOrigins      []string
 	LogLevel         string
 	PprofEnabled     bool
+	APIKeys          []string
 	CacheMaxCost     int64
 	CacheNumCounters int64
 	CacheBufferItems int64
@@ -60,6 +61,15 @@ func Load() (*Config, error) {
 	origins := os.Getenv("CORS_ORIGINS")
 	if origins != "" {
 		cfg.CORSOrigins = strings.Split(origins, ",")
+	}
+	if v := os.Getenv("API_KEYS"); v != "" {
+		parts := strings.Split(v, ",")
+		for _, p := range parts {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				cfg.APIKeys = append(cfg.APIKeys, p)
+			}
+		}
 	}
 	cfg.LogLevel = getEnvDefault("LOG_LEVEL", "info")
 	cfg.PprofEnabled = os.Getenv("PPROF_ENABLED") == "1"
