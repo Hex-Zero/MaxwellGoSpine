@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Pre-commit hook to enforce formatting and linting before commit.
+# Fails fast if gofmt would change files or golangci-lint reports issues.
+
+set -euo pipefail
+
+# Ensure we're at repo root (hook runs from .git/hooks)
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Collect unformatted files (excluding vendor if present)
+UNFORMATTED=$(gofmt -l $(git ls-files '*.go'))
+if [ -n "$UNFORMATTED" ]; then
+  echo "❌ gofmt found issues in:"
+  echo "$UNFORMATTED" | sed 's/^/  - /'
+  echo "Run: gofmt -w -s $(echo $UNFORMATTED)"
+  exit 1
+fi
+
+echo "✅ gofmt OK"
+
+# Run golangci-lint (respect project config)
+if ! command -v golangci-lint >/dev/null 2>&1; then
+  echo "golangci-lint not installed (skip). Install: https://golangci-lint.run/usage/install/" >&2
+  exit 1
+fi
+
+echo "Running golangci-lint..."
+if ! golangci-lint run ./...; then
+  echo "❌ golangci-lint issues. Fix before commit." >&2
+  exit 1
+fi
+
+echo "✅ golangci-lint passed"
+
+exit 0

@@ -27,6 +27,7 @@ make lint   # golangci-lint
 make build  # build binary
 make migrate-up   # apply migrations (requires migrate CLI)
 make auto-commit  # run lint/test/build then auto commit & push if changes
+make hooks-install # configure local git to use .githooks (pre-commit)
 ```
 
 ## Environment Variables
@@ -97,3 +98,4 @@ psql "$DB_DSN" -f scripts/seed.sql
 * Enhancements: soft deletes, email normalization, merge-patch updates.
 * New make target `auto-commit` to run checks then commit & push changes.
 * Caching: layered Ristretto (in-process) + optional Redis; ETag middleware for GET responses.
+* Pre-commit hook: run `make hooks-install` once to enable automatic gofmt + golangci-lint checks before each commit.

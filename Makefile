@@ -3,7 +3,7 @@ GO_FILES=$(shell go list ./...)
 GIT_BRANCH:=$(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 COMMIT_MSG?=chore: auto commit
 
-.PHONY: run build test lint fmt vet tidy migrate-up migrate-down check auto-commit
+.PHONY: run build test lint fmt vet tidy migrate-up migrate-down check auto-commit hooks-install
 
 run:
 	go run ./cmd/server
@@ -44,3 +44,8 @@ migrate-up:
 
 migrate-down:
 	migrate -path migrations -database $$DB_DSN down 1
+
+# Install git hooks from .githooks directory
+hooks-install:
+	git config core.hooksPath .githooks
+	@echo "Git hooks path set to .githooks (pre-commit enabled)"
