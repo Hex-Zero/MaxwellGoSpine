@@ -14,6 +14,7 @@ import (
     "github.com/hex-zero/MaxwellGoSpine/internal/core"
     "github.com/hex-zero/MaxwellGoSpine/internal/metrics"
     "net/http/pprof"
+    "io"
 )
 
 type Deps struct {
@@ -46,6 +47,17 @@ func New(d Deps) http.Handler {
         r.Mount("/debug/pprof", pprofHandler())
     }
 
+    // Serve raw OpenAPI spec
+    r.Get("/openapi.yaml", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "application/yaml")
+        http.ServeFile(w, r, "openapi.yaml")
+    })
+    // ReDoc documentation UI
+    r.Get("/docs", func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Set("Content-Type", "text/html; charset=utf-8")
+        io.WriteString(w, redocHTML)
+    })
+
     r.Route("/v1", func(api chi.Router) {
         handlers.NewUserHandler(d.UserSvc).Register(api)
     })
@@ -61,3 +73,19 @@ func pprofHandler() http.Handler {
     mux.Get("/trace", http.HandlerFunc(pprof.Trace))
     return mux
 }
+
+const redocHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>API Docs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="data:,">
+    <style>body{margin:0;padding:0;} .banner{position:fixed;top:0;left:0;right:0;background:#0d1117;color:#fff;font:14px/1.4 system-ui;padding:6px 12px;z-index:10} redoc{margin-top:32px}</style>
+</head>
+<body>
+    <div class="banner">OpenAPI documentation - <a href="/openapi.yaml" style="color:#58a6ff">download spec</a></div>
+    <redoc spec-url='/openapi.yaml'></redoc>
+    <script src="https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js"></script>
+</body>
+</html>`

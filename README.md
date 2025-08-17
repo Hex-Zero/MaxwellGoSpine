@@ -79,7 +79,7 @@ migrate -path migrations -database $DB_DSN up
 
 ## OpenAPI
 
-Minimal `openapi.yaml` included; expand as needed or generate from annotations.
+Minimal `openapi.yaml` included; view interactive docs at `/docs` (ReDoc) or raw spec at `/openapi.yaml`.
 
 ## Seed Data
 
