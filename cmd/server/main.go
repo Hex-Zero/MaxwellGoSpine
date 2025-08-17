@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"database/sql"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -46,13 +47,21 @@ func main() {
 
 	logger.Info("starting server", zap.String("version", version), zap.String("commit", commit), zap.String("date", date))
 
-	db, err := postgres.Open(ctx, cfg.DBDSN)
-	if err != nil {
-		logger.Fatal("db open", zap.Error(err))
+	var (
+		db       *sql.DB // nil in memory mode
+		userRepo core.UserRepository
+	)
+	if cfg.InMemory {
+		logger.Warn("starting in-memory mode (no external Postgres, data not persisted)")
+		userRepo = core.NewInMemoryUserRepo()
+	} else {
+		db, err = postgres.Open(ctx, cfg.DBDSN)
+		if err != nil {
+			logger.Fatal("db open", zap.Error(err))
+		}
+		defer db.Close()
+		userRepo = postgres.NewUserRepo(db)
 	}
-	defer db.Close()
-
-	userRepo := postgres.NewUserRepo(db)
 	baseUserSvc := core.NewUserService(userRepo)
 
 	// Layered cache (local + optional Redis)
@@ -87,7 +96,7 @@ func main() {
 		Version:   version,
 		Commit:    commit,
 		BuildDate: date,
-		DB:        db,
+	DB:        db,
 	})
 
 	r.Mount("/", apiRouter)

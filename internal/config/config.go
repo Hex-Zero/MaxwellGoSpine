@@ -14,6 +14,7 @@ type Config struct {
 	Env              string // dev|prod
 	HTTPPort         int
 	DBDSN            string
+	InMemory         bool
 	ReadTimeout      time.Duration
 	WriteTimeout     time.Duration
 	CORSOrigins      []string
@@ -32,6 +33,10 @@ func Load() (*Config, error) {
 	cfg.AppName = getEnvDefault("APP_NAME", "maxwell-api")
 	cfg.Env = getEnvDefault("ENV", "dev")
 	cfg.DBDSN = os.Getenv("DB_DSN")
+	// In-memory mode for local manual testing (skip external Postgres)
+	if v := os.Getenv("INMEMORY"); v == "1" || strings.ToLower(v) == "true" {
+		cfg.InMemory = true
+	}
 	portStr := getEnvDefault("HTTP_PORT", "8080")
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
@@ -78,8 +83,8 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) Validate() error {
-	if c.DBDSN == "" {
-		return errors.New("DB_DSN required")
+	if !c.InMemory && c.DBDSN == "" {
+		return errors.New("DB_DSN required (or set INMEMORY=1 for in-memory store)")
 	}
 	if c.Env != "dev" && c.Env != "prod" {
 		return fmt.Errorf("ENV must be dev or prod")
