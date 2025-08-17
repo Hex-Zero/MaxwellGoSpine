@@ -3,6 +3,7 @@ package middleware
 import (
     "net/http"
     "strings"
+    "time"
 )
 
 // APIKeyAuth returns middleware enforcing presence of a valid API key.
@@ -10,6 +11,7 @@ import (
 type APIKeyOptions struct {
     Current []string
     Old     []string // accepted but deprecated
+    Expiries map[string]int64 // unix date (start of day) expiry (exclusive)
 }
 
 func APIKeyAuth(keys []string) func(http.Handler) http.Handler { // backward compat
@@ -39,10 +41,18 @@ func APIKeyAuthWithOpts(opts APIKeyOptions) func(http.Handler) http.Handler {
                 return
             }
             if _, ok := current[candidate]; ok {
+                if isExpired(candidate, opts.Expiries) {
+                    unauthorized(w)
+                    return
+                }
                 next.ServeHTTP(w, r)
                 return
             }
             if _, ok := old[candidate]; ok {
+                if isExpired(candidate, opts.Expiries) { // even old keys can expire
+                    unauthorized(w)
+                    return
+                }
                 w.Header().Add("Warning", "299 - \"Deprecated API key in use; rotate to a current key\"")
                 next.ServeHTTP(w, r)
                 return
@@ -50,6 +60,16 @@ func APIKeyAuthWithOpts(opts APIKeyOptions) func(http.Handler) http.Handler {
             unauthorized(w)
         })
     }
+}
+
+func isExpired(key string, expiries map[string]int64) bool {
+    if len(expiries) == 0 { return false }
+    if ts, ok := expiries[key]; ok {
+        // expiry stored as unix date boundary (00:00 UTC). Compare current UTC date.
+        now := time.Now().UTC().Unix()
+        if now >= ts { return true }
+    }
+    return false
 }
 
 func unauthorized(w http.ResponseWriter) {

@@ -22,6 +22,7 @@ type Config struct {
 	PprofEnabled     bool
 	APIKeys          []string
 	OldAPIKeys       []string
+	APIKeyExpiries   map[string]time.Time // key -> expiry (exclusive); expired keys rejected
 	CacheMaxCost     int64
 	CacheNumCounters int64
 	CacheBufferItems int64
@@ -78,6 +79,21 @@ func Load() (*Config, error) {
 			p = strings.TrimSpace(p)
 			if p != "" {
 				cfg.OldAPIKeys = append(cfg.OldAPIKeys, p)
+			}
+		}
+	}
+	if v := os.Getenv("API_KEY_EXPIRIES"); v != "" { // format key:YYYY-MM-DD[,key:YYYY-MM-DD]
+		cfg.APIKeyExpiries = map[string]time.Time{}
+		pairs := strings.Split(v, ",")
+		for _, pair := range pairs {
+			pair = strings.TrimSpace(pair)
+			if pair == "" || !strings.Contains(pair, ":") { continue }
+			kv := strings.SplitN(pair, ":", 2)
+			key := strings.TrimSpace(kv[0])
+			dateStr := strings.TrimSpace(kv[1])
+			if key == "" || dateStr == "" { continue }
+			if ts, err := time.Parse("2006-01-02", dateStr); err == nil {
+				cfg.APIKeyExpiries[key] = ts
 			}
 		}
 	}

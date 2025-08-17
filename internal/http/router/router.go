@@ -70,7 +70,14 @@ func New(d Deps) http.Handler {
 
 	r.Route("/v1", func(api chi.Router) {
 		// Secure all versioned API endpoints with API key if configured
-			api.Use(appmw.APIKeyAuthWithOpts(appmw.APIKeyOptions{Current: d.CFG.APIKeys, Old: d.CFG.OldAPIKeys}))
+		// Build expiries map (per-key start-of-day Unix seconds) for middleware
+		expUnix := map[string]int64{}
+		for k, t := range d.CFG.APIKeyExpiries {
+			// floor to day boundary UTC
+			day := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC)
+			expUnix[k] = day.Unix()
+		}
+		api.Use(appmw.APIKeyAuthWithOpts(appmw.APIKeyOptions{Current: d.CFG.APIKeys, Old: d.CFG.OldAPIKeys, Expiries: expUnix}))
 		handlers.NewUserHandler(d.UserSvc).Register(api)
 	})
 	return r

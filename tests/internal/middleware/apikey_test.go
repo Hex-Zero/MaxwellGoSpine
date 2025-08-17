@@ -4,6 +4,7 @@ import (
     "net/http"
     "net/http/httptest"
     "testing"
+    "time"
 
     appmw "github.com/hex-zero/MaxwellGoSpine/internal/middleware"
 )
@@ -56,4 +57,30 @@ func TestAPIKeyAuthWithDeprecated(t *testing.T) {
     if rr.Header().Get("Warning") == "" {
         t.Fatalf("expected Warning header for deprecated key")
     }
+}
+
+func TestAPIKeyAuthExpiry(t *testing.T) {
+    tomorrow := time.Now().UTC().Add(24 * time.Hour)
+    yesterday := time.Now().UTC().Add(-24 * time.Hour)
+    exp := map[string]int64{}
+    day := func(t time.Time) int64 { d := time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, time.UTC); return d.Unix() }
+    exp["valid"] = day(tomorrow)
+    exp["expired"] = day(yesterday)
+    mw := appmw.APIKeyAuthWithOpts(appmw.APIKeyOptions{Current: []string{"valid", "expired"}, Expiries: exp})
+    base := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+    h := mw(base)
+
+    // valid key
+    rr := httptest.NewRecorder()
+    req, _ := http.NewRequest(http.MethodGet, "/", nil)
+    req.Header.Set("X-API-Key", "valid")
+    h.ServeHTTP(rr, req)
+    if rr.Code != http.StatusOK { t.Fatalf("expected 200 for valid key, got %d", rr.Code) }
+
+    // expired key
+    rr = httptest.NewRecorder()
+    req, _ = http.NewRequest(http.MethodGet, "/", nil)
+    req.Header.Set("X-API-Key", "expired")
+    h.ServeHTTP(rr, req)
+    if rr.Code != http.StatusUnauthorized { t.Fatalf("expected 401 for expired key, got %d", rr.Code) }
 }
