@@ -53,7 +53,7 @@ func main() {
     defer db.Close()
 
     userRepo := postgres.NewUserRepo(db)
-    userSvc := core.NewUserService(userRepo)
+    baseUserSvc := core.NewUserService(userRepo)
 
     // Layered cache (local + optional Redis)
     var rdb *redis.Client
@@ -72,7 +72,7 @@ func main() {
         RedisClient: rdb,
     })
     if err != nil { logger.Warn("cache init failed", zap.Error(err)) }
-    _ = layeredCache // currently unused placeholder until endpoints leverage it
+    userSvc := core.NewCachedUserService(baseUserSvc, layeredCache)
 
     reg := metrics.NewRegistry()
 
