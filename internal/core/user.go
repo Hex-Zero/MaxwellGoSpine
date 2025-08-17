@@ -1,15 +1,15 @@
 package core
 
 import (
-    "time"
-    "github.com/google/uuid"
+	"github.com/google/uuid"
+	"time"
 )
 
 type User struct {
-    ID        uuid.UUID
-    Name      string
-    Email     string
-    CreatedAt time.Time
-    UpdatedAt time.Time
-    DeletedAt *time.Time
+	ID        uuid.UUID
+	Name      string
+	Email     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time
 }
