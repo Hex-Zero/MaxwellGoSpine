@@ -43,6 +43,7 @@ paths:
         '200': { description: OK }
     patch:
       summary: Update user
+      description: Supports application/json and application/merge-patch+json (RFC 7396)
       parameters:
         - in: path
           name: id
@@ -51,6 +52,12 @@ paths:
       requestBody:
         content:
           application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                email: { type: string }
+          application/merge-patch+json:
             schema:
               type: object
               properties:

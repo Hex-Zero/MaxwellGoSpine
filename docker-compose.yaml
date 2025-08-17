@@ -7,9 +7,9 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_DB: app
     ports:
-      - "5432:5432"
+      - '5432:5432'
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
       interval: 5s
       timeout: 3s
       retries: 5
@@ -23,4 +23,4 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - '8080:8080'

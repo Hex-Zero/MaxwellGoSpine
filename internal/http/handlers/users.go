@@ -3,6 +3,7 @@ package handlers
 import (
     "encoding/json"
     "fmt"
+    "io"
     "net/http"
     "strconv"
     "time"
@@ -65,7 +66,13 @@ func (h *UserHandler) update(w http.ResponseWriter, r *http.Request) {
     id, err := parseUUIDParam(r, "id")
     if err != nil { render.Problem(w, r, http.StatusBadRequest, "Invalid ID", err.Error()); return }
     var req updateUserReq
-    if err := decodeJSON(w, r, &req); err != nil { render.Problem(w, r, http.StatusBadRequest, "Invalid JSON", err.Error()); return }
+    if r.Header.Get("Content-Type") == "application/merge-patch+json" {
+        body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, maxBody))
+        if err != nil { render.Problem(w, r, http.StatusBadRequest, "Read Error", err.Error()); return }
+        if err := json.Unmarshal(body, &req); err != nil { render.Problem(w, r, http.StatusBadRequest, "Invalid JSON", err.Error()); return }
+    } else {
+        if err := decodeJSON(w, r, &req); err != nil { render.Problem(w, r, http.StatusBadRequest, "Invalid JSON", err.Error()); return }
+    }
     u, err := h.svc.Update(r.Context(), id, req.Name, req.Email)
     if err != nil { render.Problem(w, r, errs.HTTPStatus(err), "Update Failed", err.Error()); return }
     render.JSON(w, r, http.StatusOK, toDTO(u))
