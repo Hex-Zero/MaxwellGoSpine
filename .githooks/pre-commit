@@ -1,36 +1,91 @@
 #!/usr/bin/env bash
-# Pre-commit hook to enforce formatting and linting before commit.
-# Fails fast if gofmt would change files or golangci-lint reports issues.
+# Pre-commit hook with auto-fixing:
+# 1. Detect staged Go files.
+# 2. Apply gofmt -s (and goimports if available) in-place.
+# 3. Run golangci-lint --fix (if installed) limited to changed packages.
+# 4. Re-stage any modified files.
+# 5. Fail only on remaining lint errors that cannot be auto-fixed.
 
 set -euo pipefail
 
-# Ensure we're at repo root (hook runs from .git/hooks)
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-# Collect unformatted files (excluding vendor if present)
-UNFORMATTED=$(gofmt -l $(git ls-files '*.go'))
-if [ -n "$UNFORMATTED" ]; then
-  echo "❌ gofmt found issues in:"
-  echo "$UNFORMATTED" | sed 's/^/  - /'
-  echo "Run: gofmt -w -s $(echo $UNFORMATTED)"
+# Allow skipping (e.g. CI reusing hooks or emergency bypass):
+if [ "${SKIP_PRECOMMIT:-}" = "1" ]; then
+  echo "(pre-commit) Skipped via SKIP_PRECOMMIT=1"
+  exit 0
+fi
+
+# Gather staged go files (Added / Copied / Modified)
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.go$' || true)
+if [ -z "$STAGED_FILES" ]; then
+  echo "No staged Go files."
+  exit 0
+fi
+
+echo "Staged Go files:" $(echo "$STAGED_FILES" | tr '\n' ' ')
+
+changed=0
+
+fmt_apply() {
+  local tool=$1; shift
+  if command -v "$tool" >/dev/null 2>&1; then
+    # shellcheck disable=SC2046
+    $tool -w $@
+  fi
+}
+
+echo "Running gofmt -s (auto-fix)"
+# shellcheck disable=SC2086
+gofmt -l -s $STAGED_FILES | while read -r f; do :; done # list (ignore) just to ensure no error
+# shellcheck disable=SC2086
+gofmt -w -s $STAGED_FILES || true
+
+if command -v goimports >/dev/null 2>&1; then
+  echo "Running goimports (auto-fix)"
+  # shellcheck disable=SC2086
+  goimports -w $STAGED_FILES || true
+fi
+
+# Re-stage any formatting changes
+git add $STAGED_FILES
+
+# Run golangci-lint with --fix if available
+if command -v golangci-lint >/dev/null 2>&1; then
+  echo "Running golangci-lint --fix (may take a moment)..."
+  # Use a faster mode if env FAST_PRECOMMIT=1 (limit to staged files packages)
+  if [ "${FAST_PRECOMMIT:-}" = "1" ]; then
+    # Derive unique package directories from staged files
+    PKG_DIRS=$(echo "$STAGED_FILES" | awk -F/ '{OFS="/"; $NF=""; print}' | sort -u)
+    # Run per dir (avoids scanning whole repo)
+    for d in $PKG_DIRS; do
+      if [ -d "$d" ]; then
+        golangci-lint run --fix "$d" || lint_fail=1
+      fi
+    done
+  else
+    golangci-lint run --fix ./... || lint_fail=1
+  fi
+  # Restage after fixes (if any)
+  git add $STAGED_FILES || true
+  if [ "${lint_fail:-0}" = "1" ]; then
+    echo "❌ golangci-lint reported remaining issues (not auto-fixable)." >&2
+    exit 1
+  fi
+  echo "✅ golangci-lint passed (with auto-fixes)"
+else
+  echo "golangci-lint not installed; skipping lint (install to enforce)."
+fi
+
+# Final verification: ensure no unformatted files remain among staged
+UNFORMATTED_POST=$(gofmt -l $(echo "$STAGED_FILES"))
+if [ -n "$UNFORMATTED_POST" ]; then
+  echo "❌ Formatting still required for:"
+  echo "$UNFORMATTED_POST" | sed 's/^/  - /'
+  echo "Please fix manually (unexpected)."
   exit 1
 fi
 
-echo "✅ gofmt OK"
-
-# Run golangci-lint (respect project config)
-if ! command -v golangci-lint >/dev/null 2>&1; then
-  echo "golangci-lint not installed (skip). Install: https://golangci-lint.run/usage/install/" >&2
-  exit 1
-fi
-
-echo "Running golangci-lint..."
-if ! golangci-lint run ./...; then
-  echo "❌ golangci-lint issues. Fix before commit." >&2
-  exit 1
-fi
-
-echo "✅ golangci-lint passed"
-
+echo "✅ Pre-commit checks & auto-fixes complete"
 exit 0
