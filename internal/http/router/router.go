@@ -70,7 +70,7 @@ func New(d Deps) http.Handler {
 
 	r.Route("/v1", func(api chi.Router) {
 		// Secure all versioned API endpoints with API key if configured
-		api.Use(appmw.APIKeyAuth(d.CFG.APIKeys))
+			api.Use(appmw.APIKeyAuthWithOpts(appmw.APIKeyOptions{Current: d.CFG.APIKeys, Old: d.CFG.OldAPIKeys}))
 		handlers.NewUserHandler(d.UserSvc).Register(api)
 	})
 	return r

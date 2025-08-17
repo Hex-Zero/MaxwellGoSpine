@@ -21,6 +21,7 @@ type Config struct {
 	LogLevel         string
 	PprofEnabled     bool
 	APIKeys          []string
+	OldAPIKeys       []string
 	CacheMaxCost     int64
 	CacheNumCounters int64
 	CacheBufferItems int64
@@ -68,6 +69,15 @@ func Load() (*Config, error) {
 			p = strings.TrimSpace(p)
 			if p != "" {
 				cfg.APIKeys = append(cfg.APIKeys, p)
+			}
+		}
+	}
+	if v := os.Getenv("API_KEYS_OLD"); v != "" { // legacy keys accepted but marked deprecated
+		parts := strings.Split(v, ",")
+		for _, p := range parts {
+			p = strings.TrimSpace(p)
+			if p != "" {
+				cfg.OldAPIKeys = append(cfg.OldAPIKeys, p)
 			}
 		}
 	}

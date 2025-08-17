@@ -39,3 +39,21 @@ func TestAPIKeyAuth(t *testing.T) {
         t.Fatalf("expected 200 and handler execution, got %d called=%v", rr.Code, called)
     }
 }
+
+func TestAPIKeyAuthWithDeprecated(t *testing.T) {
+    mw := appmw.APIKeyAuthWithOpts(appmw.APIKeyOptions{Current: []string{"newkey"}, Old: []string{"oldkey"}})
+    called := false
+    handler := mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { called = true; w.WriteHeader(http.StatusOK) }))
+
+    // Deprecated key should pass and include Warning header
+    rr := httptest.NewRecorder()
+    req, _ := http.NewRequest(http.MethodGet, "/", nil)
+    req.Header.Set("X-API-Key", "oldkey")
+    handler.ServeHTTP(rr, req)
+    if rr.Code != http.StatusOK || !called {
+        t.Fatalf("deprecated key should allow access; got %d called=%v", rr.Code, called)
+    }
+    if rr.Header().Get("Warning") == "" {
+        t.Fatalf("expected Warning header for deprecated key")
+    }
+}
