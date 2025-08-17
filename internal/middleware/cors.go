@@ -16,10 +16,13 @@ func CORS(allowed []string) func(http.Handler) http.Handler {
 			origin := r.Header.Get("Origin")
 			if origin != "" && (allowAll || contains(allowedSet, origin)) {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
+				// Keep Vary so caches differentiate per-origin
 				w.Header().Set("Vary", "Origin")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Request-ID")
+				// Include X-API-Key so browser preflight succeeds; add common headers and ETag/Warning exposure
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Request-ID,X-API-Key")
 				w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS")
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
+				w.Header().Set("Access-Control-Expose-Headers", "ETag,Warning")
 			}
 			if r.Method == http.MethodOptions {
 				w.WriteHeader(http.StatusNoContent)

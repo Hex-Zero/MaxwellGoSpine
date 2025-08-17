@@ -1,0 +1,17 @@
+# gqlgen configuration
+schema:
+  - graph/schema.graphqls
+exec:
+  filename: graph/generated/generated.go
+  package: generated
+model:
+  filename: graph/model/models_gen.go
+  package: model
+resolver:
+  dir: graph/resolver
+  package: resolver
+# Optional: omit by default
+autobind: []
+models:
+  User:
+    model: github.com/hex-zero/MaxwellGoSpine/graph/model.User

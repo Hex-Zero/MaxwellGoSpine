@@ -8,8 +8,6 @@ components:
       type: apiKey
       in: header
       name: X-API-Key
-security:
-  - ApiKeyAuth: []
 servers:
   - url: http://localhost:8080
 paths:
@@ -23,6 +21,8 @@ paths:
         - in: query
           name: page_size
           schema: { type: integer }
+      security:
+        - ApiKeyAuth: []
       responses:
         '200': { description: OK }
     post:
@@ -37,6 +37,8 @@ paths:
               properties:
                 name: { type: string }
                 email: { type: string }
+      security:
+        - ApiKeyAuth: []
       responses:
         '201': { description: Created }
   /v1/users/{id}:
@@ -47,6 +49,8 @@ paths:
           name: id
           required: true
           schema: { type: string, format: uuid }
+      security:
+        - ApiKeyAuth: []
       responses:
         '200': { description: OK }
     patch:
@@ -71,6 +75,8 @@ paths:
               properties:
                 name: { type: string }
                 email: { type: string }
+      security:
+        - ApiKeyAuth: []
       responses:
         '200': { description: OK }
     delete:
@@ -80,5 +86,7 @@ paths:
           name: id
           required: true
           schema: { type: string, format: uuid }
+      security:
+        - ApiKeyAuth: []
       responses:
         '204': { description: No Content }
