@@ -1,6 +1,8 @@
 # MaxwellGoSpine
 
 [![CI](https://github.com/Hex-Zero/MaxwellGoSpine/actions/workflows/ci.yml/badge.svg)](https://github.com/Hex-Zero/MaxwellGoSpine/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/hex-zero/MaxwellGoSpine)](https://goreportcard.com/report/github.com/hex-zero/MaxwellGoSpine)
+<!-- TODO: Add coverage badge (Codecov or Coveralls) after uploading reports there -->
 
 Production-ready Go 1.22 REST API spine (net/http + chi) with layered architecture, PostgreSQL, structured logging, metrics, health/readiness, graceful shutdown.
 
