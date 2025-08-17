@@ -19,6 +19,7 @@ func (m *mockUserSvc) Get(ctx context.Context, id uuid.UUID) (*core.User, error)
 func (m *mockUserSvc) Update(ctx context.Context, id uuid.UUID, name *string, email *string) (*core.User, error) { return nil, core.ErrNotFound }
 func (m *mockUserSvc) Delete(ctx context.Context, id uuid.UUID) error { return core.ErrNotFound }
 func (m *mockUserSvc) List(ctx context.Context, page, pageSize int) ([]*core.User, int, error) { return nil,0,nil }
+func (m *mockUserSvc) WithTx(ctx context.Context, fn func(context.Context, core.UnitOfWork) error) error { return fn(ctx, nil) }
 
 func TestCreateUser(t *testing.T) {
     svc := &mockUserSvc{}
