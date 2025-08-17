@@ -1,4 +1,3 @@
-# gqlgen configuration
 schema:
   - graph/schema.graphqls
 exec:
@@ -10,8 +9,10 @@ model:
 resolver:
   dir: graph/resolver
   package: resolver
-# Optional: omit by default
+  layout: follow-schema
 autobind: []
+struct_tag: json
+omit_slice_element_pointers: true
 models:
   User:
     model: github.com/hex-zero/MaxwellGoSpine/graph/model.User
