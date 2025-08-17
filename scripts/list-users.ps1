@@ -19,10 +19,12 @@ if($Raw){ $users | ConvertTo-Json -Depth 4; exit 0 }
 # Column widths (dynamic if wide)
 if($Wide){
   $fmt = '{0}  {1,-20} {2}'
+  $namePadHeader = '        '
 } else {
   $fmt = '{0}  {1,-12} {2}'
+  $namePadHeader = ''
 }
-Write-Host ("ID{0}NAME{1}EMAIL" -f (' ' * 34), (' ' * (if($Wide){8}else{0}))) -ForegroundColor Cyan
+Write-Host ("ID{0}NAME{1}EMAIL" -f (' ' * 34), $namePadHeader) -ForegroundColor Cyan
 Write-Host ('-' * 90) -ForegroundColor DarkCyan
 foreach($u in $users){
   $line = $fmt -f $u.id, $u.name, $u.email
