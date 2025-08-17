@@ -1,5 +1,7 @@
 # MaxwellGoSpine
 
+[![CI](https://github.com/Hex-Zero/MaxwellGoSpine/actions/workflows/ci.yml/badge.svg)](https://github.com/Hex-Zero/MaxwellGoSpine/actions/workflows/ci.yml)
+
 Production-ready Go 1.22 REST API spine (net/http + chi) with layered architecture, PostgreSQL, structured logging, metrics, health/readiness, graceful shutdown.
 
 ## Quick Start
@@ -22,6 +24,7 @@ make test   # run tests
 make lint   # golangci-lint
 make build  # build binary
 make migrate-up   # apply migrations (requires migrate CLI)
+make auto-commit  # run lint/test/build then auto commit & push if changes
 ```
 
 ## Environment Variables
@@ -83,3 +86,5 @@ psql "$DB_DSN" -f scripts/seed.sql
 * Layers: cmd/server, internal/* (config, log, middleware, http handlers/render, core domain/services, storage).
 * Replace module path in `go.mod` with your repository path if different.
 * No global mutable singletons; dependencies passed via constructors.
+* Enhancements: soft deletes, email normalization, merge-patch updates.
+* New make target `auto-commit` to run checks then commit & push changes.
