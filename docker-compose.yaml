@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+  api:
+    build: .
+    environment:
+      DB_DSN: postgres://postgres:postgres@db:5432/app?sslmode=disable
+      ENV: dev
+      HTTP_PORT: 8080
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
