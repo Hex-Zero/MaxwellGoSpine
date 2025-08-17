@@ -19,6 +19,12 @@ type Config struct {
     CORSOrigins []string
     LogLevel    string
     PprofEnabled bool
+    CacheMaxCost int64
+    CacheNumCounters int64
+    CacheBufferItems int64
+    RedisAddr string
+    RedisPassword string
+    RedisDB int
 }
 
 func Load() (*Config, error) {
@@ -47,6 +53,14 @@ func Load() (*Config, error) {
     cfg.LogLevel = getEnvDefault("LOG_LEVEL", "info")
     cfg.PprofEnabled = os.Getenv("PPROF_ENABLED") == "1"
 
+    // Cache defaults
+    cfg.CacheMaxCost = parseInt64Env("CACHE_MAX_COST", 10_000)
+    cfg.CacheNumCounters = parseInt64Env("CACHE_NUM_COUNTERS", 100_000)
+    cfg.CacheBufferItems = parseInt64Env("CACHE_BUFFER_ITEMS", 64)
+    cfg.RedisAddr = getEnvDefault("REDIS_ADDR", "")
+    cfg.RedisPassword = getEnvDefault("REDIS_PASSWORD", "")
+    if v := os.Getenv("REDIS_DB"); v != "" { if i, err := strconv.Atoi(v); err==nil { cfg.RedisDB = i } }
+
     if err := cfg.Validate(); err != nil { return nil, err }
     return cfg, nil
 }
@@ -58,3 +72,11 @@ func (c *Config) Validate() error {
 }
 
 func getEnvDefault(k, def string) string { v := os.Getenv(k); if v == "" { return def }; return v }
+
+func parseInt64Env(k string, def int64) int64 {
+    v := os.Getenv(k)
+    if v == "" { return def }
+    i, err := strconv.ParseInt(v, 10, 64)
+    if err != nil { return def }
+    return i
+}

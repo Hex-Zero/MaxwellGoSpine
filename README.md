@@ -42,6 +42,12 @@ make auto-commit  # run lint/test/build then auto commit & push if changes
 | CORS_ORIGINS | no | (empty) | Comma list of allowed origins |
 | LOG_LEVEL | no | info | zap log level |
 | PPROF_ENABLED | no | 0 | Enable /debug/pprof when 1 |
+| CACHE_MAX_COST | no | 10000 | Ristretto max cost (approx entries) |
+| CACHE_NUM_COUNTERS | no | 100000 | Ristretto counters (10x max items) |
+| CACHE_BUFFER_ITEMS | no | 64 | Ristretto buffer items |
+| REDIS_ADDR | no | (empty) | Redis host:port to enable shared cache |
+| REDIS_PASSWORD | no | (empty) | Redis password |
+| REDIS_DB | no | 0 | Redis DB number |
 
 ## API Examples
 
@@ -90,3 +96,4 @@ psql "$DB_DSN" -f scripts/seed.sql
 * No global mutable singletons; dependencies passed via constructors.
 * Enhancements: soft deletes, email normalization, merge-patch updates.
 * New make target `auto-commit` to run checks then commit & push changes.
+* Caching: layered Ristretto (in-process) + optional Redis; ETag middleware for GET responses.

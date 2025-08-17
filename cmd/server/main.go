@@ -21,6 +21,8 @@ import (
     applog "github.com/hex-zero/MaxwellGoSpine/internal/log"
     "github.com/hex-zero/MaxwellGoSpine/internal/metrics"
     "github.com/hex-zero/MaxwellGoSpine/internal/storage/postgres"
+    "github.com/hex-zero/MaxwellGoSpine/internal/cache"
+    "github.com/redis/go-redis/v9"
 )
 
 var (
@@ -52,6 +54,25 @@ func main() {
 
     userRepo := postgres.NewUserRepo(db)
     userSvc := core.NewUserService(userRepo)
+
+    // Layered cache (local + optional Redis)
+    var rdb *redis.Client
+    if cfg.RedisAddr != "" {
+        rdb = redis.NewClient(&redis.Options{Addr: cfg.RedisAddr, Password: cfg.RedisPassword, DB: cfg.RedisDB})
+        if err := rdb.Ping(ctx).Err(); err != nil {
+            logger.Warn("redis ping failed, continuing without redis", zap.Error(err))
+            rdb = nil
+        }
+    }
+    layeredCache, err := cache.New(cache.Options{
+        MaxCost: cfg.CacheMaxCost,
+        NumCounters: cfg.CacheNumCounters,
+        BufferItems: cfg.CacheBufferItems,
+        TTL: 5 * time.Minute,
+        RedisClient: rdb,
+    })
+    if err != nil { logger.Warn("cache init failed", zap.Error(err)) }
+    _ = layeredCache // currently unused placeholder until endpoints leverage it
 
     reg := metrics.NewRegistry()
 

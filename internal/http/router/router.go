@@ -35,6 +35,7 @@ func New(d Deps) http.Handler {
     r.Use(appmw.Timeout(30 * time.Second))
     r.Use(appmw.CORS(d.CFG.CORSOrigins))
     r.Use(appmw.Gzip(-1))
+    r.Use(appmw.ETag)
     r.Use(middleware.Heartbeat("/ping"))
 
     r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) { render.JSON(w, r, http.StatusOK, map[string]string{"status": "ok"}) })
