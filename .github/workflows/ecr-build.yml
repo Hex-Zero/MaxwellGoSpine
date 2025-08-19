@@ -1,0 +1,46 @@
+name: Build and Push to ECR
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write # for OIDC federation
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY: maxwell-api
+      IMAGE_TAG: latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        run: |
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ECR_URI="$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:$IMAGE_TAG"
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_URI
+          echo "ECR_URI=$ECR_URI" >> $GITHUB_ENV
+
+      - name: Push image
+        run: |
+          docker push $ECR_URI
+
+      - name: Output image URI
+        run: |
+          echo "Image pushed: $ECR_URI"

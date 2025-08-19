@@ -99,3 +99,59 @@ psql "$DB_DSN" -f scripts/seed.sql
 * New make target `auto-commit` to run checks then commit & push changes.
 * Caching: layered Ristretto (in-process) + optional Redis; ETag middleware for GET responses.
 * Pre-commit hook: run `make hooks-install` once to enable automatic gofmt + golangci-lint checks before each commit.
+
+## Deployment (Three Image Build Paths)
+
+You can produce & publish the container image via any (or all) of these options:
+
+### 1. Local Docker (manual)
+
+1. Install Docker Desktop (Windows/Mac) or Docker Engine (Linux).
+2. Authenticate to ECR:
+
+```powershell
+$acct = (aws sts get-caller-identity --query Account --output text --profile maxwell)
+$repoUri = "$acct.dkr.ecr.us-east-1.amazonaws.com/maxwell-api"
+aws ecr get-login-password --region us-east-1 --profile maxwell | docker login --username AWS --password-stdin $repoUri
+docker build -t maxwell-api:latest .
+docker tag maxwell-api:latest $repoUri:latest
+docker push $repoUri:latest
+```
+
+1. Set `api_image` in `terraform.tfvars` to the pushed URI then `terraform apply`.
+
+### 2. GitHub Actions (OIDC, no local creds in secrets)
+
+1. Set Terraform variable `github_repo = "Hex-Zero/MaxwellGoSpine"` then apply to create an IAM role & (if needed) the GitHub OIDC provider.
+2. Copy output `github_actions_oidc_role_arn` into a new GitHub Actions repository secret named `AWS_GITHUB_OIDC_ROLE_ARN`.
+3. Push to `main` – workflow `.github/workflows/ecr-build.yml` builds & pushes `:latest` to ECR.
+4. (Optional) Add Terraform `depends_on` or run `terraform apply -refresh-only` to pick up new image digests later if using immutable tags.
+
+### 3. AWS CodeBuild (managed build in AWS)
+
+1. Leave `enable_codebuild = true` (default). Terraform creates a CodeBuild project + IAM role (or supply existing role ARN via `codebuild_service_role_arn`).
+2. Trigger a build in the AWS Console (or add a webhook) to build & push `latest` image.
+3. Output logs appear in CloudWatch group `/codebuild/maxwell`.
+
+### Terraform Deploy
+
+1. Copy `terraform/terraform.tfvars.example` to `terraform/terraform.tfvars` and fill: `api_image`, `api_keys`, `db_dsn`, optional `github_repo`.
+2. Install Terraform >= 1.6.
+3. Run:
+
+```powershell
+terraform -chdir=terraform init
+terraform -chdir=terraform plan -out tf.plan
+terraform -chdir=terraform apply tf.plan
+```
+
+1. Note outputs: `alb_dns_name`, `api_url`. Use header `X-API-Key: <key>` for `/v1/*`.
+
+### Updating the Service
+
+After pushing a new image (any path), run `terraform apply` again if using an immutable tag or update the tag reference.
+
+### HTTPS (Next Step)
+
+Add ACM certificate + HTTPS listener (port 443) and redirect from 80 for production hardening.
+

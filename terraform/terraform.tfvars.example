@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars and fill values
+api_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/maxwell-api:latest"
+api_keys  = "key123,key456"  # comma separated
+db_dsn    = "postgres://user:pass@host:5432/dbname?sslmode=disable"
+# Optional for GitHub Actions OIDC role creation
+# github_repo = "Hex-Zero/MaxwellGoSpine"

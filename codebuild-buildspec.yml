@@ -1,0 +1,22 @@
+version: 0.2
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws --version
+      - ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - REPO_URI=$ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/maxwell-api
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $REPO_URI
+  build:
+    commands:
+      - echo Build started on `date`
+      - docker build -t maxwell-api:latest .
+      - docker tag maxwell-api:latest $REPO_URI:latest
+  post_build:
+    commands:
+      - echo Pushing the Docker image...
+      - docker push $REPO_URI:latest
+      - printf '{"imageURI":"%s"}' $REPO_URI:latest > imageDetail.json
+artifacts:
+  files:
+    - imageDetail.json
